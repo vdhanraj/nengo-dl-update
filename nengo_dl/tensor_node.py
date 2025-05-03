@@ -347,11 +347,25 @@ class SimTensorNodeBuilder(OpBuilder):
         if isinstance(self.func, tf.keras.layers.Layer):
             if len(inputs) == 1:
                 inputs = inputs[0]
-            kwargs = (
-                {"training": self.config.training}
-                if self.func._expects_training_arg
-                else {}
-            )
+
+            # --- OLD CODE (commented out for compatibility with older versions) ---
+            # kwargs = (
+            #     {"training": self.config.training}
+            #     if self.func._expects_training_arg
+            #     else {}
+            # )
+            # output = self.func.call(inputs, **kwargs)
+
+            # --- NEW CODE ---
+            # In newer Keras versions, _expects_training_arg may not be set.
+            # Fallback to inspecting the 'call' signature if needed.
+            try:
+                expects_training = self.func._expects_training_arg
+            except AttributeError:
+                from inspect import signature
+                expects_training = "training" in signature(self.func.call).parameters
+
+            kwargs = {"training": self.config.training} if expects_training else {}
             output = self.func.call(inputs, **kwargs)
         else:
             output = self.func(*inputs)

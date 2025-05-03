@@ -987,13 +987,20 @@ class Simulator:  # pylint: disable=too-many-public-methods
         # warn for synapses with n_steps=1
         # note: we don't warn if stateful, since there could be effects across runs
         if not stateful:
-            target_probes = [
-                p
-                for p, e in zip(self.model.probes, self.keras_model.output_names)
-                if self.keras_model.compiled_loss is None
-                or self.keras_model.compiled_loss._losses is None
-                or e in self.keras_model.compiled_loss._losses
-            ]
+            # --- OLD CODE (Keras 2.x and earlier TF versions) ---
+            # target_probes = [
+            #     p
+            #     for p, e in zip(self.model.probes, self.keras_model.output_names)
+            #     if self.keras_model.compiled_loss is None
+            #     or self.keras_model.compiled_loss._losses is None
+            #     or e in self.keras_model.compiled_loss._losses
+            # ]
+
+            # --- NEW CODE (Keras 3.x compatibility) ---
+            # Keras 3 changed `compiled_loss` to be a callable, so `_losses` is no longer accessible.
+            # Instead of relying on private attributes, we conservatively assume all probes are relevant.
+            # This is safe and avoids breaking behavior for typical loss/metric setups.
+            target_probes = self.model.probes
 
             synapses = [
                 x.synapse is not None
