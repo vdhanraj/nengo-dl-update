@@ -85,17 +85,27 @@ else:
     from keras.engine.functional import Functional, _build_map
     from keras.layers import BatchNormalizationV1, BatchNormalizationV2
 
-if version.parse(tf.__version__) < version.parse("2.5.0rc0"):
+# Get the actual Keras version string (not TensorFlow's version)
+keras_version = version.parse(tf.keras.__version__)
+
+if keras_version < version.parse("2.5.0"):
 
     def sub_layers(layer):
-        """Get layers contained in ``layer``."""
-        return layer._layers
+        """Get layers contained in ``layer`` (Keras <2.5)."""
+        return layer._layers  # Old Keras used _layers directly
+
+elif keras_version < version.parse("3.0.0"):
+
+    def sub_layers(layer):
+        """Get layers contained in ``layer`` (Keras 2.5 to <3.0)."""
+        return layer._self_tracked_trackables  # Used during TF 2.5 to 2.12
 
 else:
-
+    # NOTE: In Keras 3.x, both _layers and _self_tracked_trackables are removed.
+    # Use the new public API layer._flatten_layers() to get sublayers.
     def sub_layers(layer):
-        """Get layers contained in ``layer``."""
-        return layer._self_tracked_trackables
+        """Get layers contained in ``layer`` (Keras >=3.0)."""
+        return layer._flatten_layers(include_self=False, recursive=False)
 
     # monkeypatch to fix bug when using TF2.5 with sphinx's doctest extension
     from tensorflow.python.autograph.impl.api import StackTraceMapper

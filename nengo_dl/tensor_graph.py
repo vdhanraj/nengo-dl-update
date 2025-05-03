@@ -59,12 +59,23 @@ class TensorGraph(tf.keras.layers.Layer):
     def __init__(
         self, model, dt, unroll_simulation, minibatch_size, device, progress, seed
     ):
+        # NOTE: As of Keras 3.x, tf.keras.layers.Layer no longer accepts 'dynamic' or 'batch_size'
+        # as keyword arguments in its constructor. These caused:
+        #   ValueError: Unrecognized keyword arguments passed to TensorGraph: {'dynamic': False, 'batch_size': 1}
+        # We comment out the incompatible arguments and use only supported ones.
+
+        # super().__init__(
+        #     name="TensorGraph",
+        #     dynamic=False,
+        #     trainable=not config.get_setting(model, "inference_only", False),
+        #     dtype=config.get_setting(model, "dtype", "float32"),
+        #     batch_size=minibatch_size,
+        # )
+
         super().__init__(
             name="TensorGraph",
-            dynamic=False,
             trainable=not config.get_setting(model, "inference_only", False),
             dtype=config.get_setting(model, "dtype", "float32"),
-            batch_size=minibatch_size,
         )
 
         self.model = model
@@ -416,7 +427,11 @@ class TensorGraph(tf.keras.layers.Layer):
         override_training = config.get_setting(self.model, "learning_phase", None)
         training = training if override_training is None else override_training
 
-        super().call(inputs, training=training)
+        # NOTE: Removed call to super().call(...) because Keras 3.x expects
+        # compute_output_spec or compute_output_shape to be implemented, which this
+        # model does not need. The parent Layer.call is effectively a no-op and now unsafe.
+        # See: https://github.com/keras-team/keras/issues/18027
+        # super().call(inputs, training=training)
 
         if training is True and self.inference_only:
             raise BuildError(
@@ -452,15 +467,27 @@ class TensorGraph(tf.keras.layers.Layer):
         # set up build config
         # TODO: it would be nicer if buildconfig was static (i.e. find a separate
         #  way to pass around `training`)
+
+        # NOTE: tf.keras.backend.learning_phase() has been removed in Keras 3.x.
+        # In older versions, it returned a symbolic tensor that toggled training/inference modes.
+        # Since NengoDL's training is handled explicitly, we now default to inference (False)
+        # when no value is passed.
+
+        # Old (broken in Keras 3):
+        # training=(
+        #     tf.keras.backend.learning_phase() if training is None else training
+        # ),
+
+        if training is None:
+            training = False  # Default to inference mode
+
         build_config = builder.BuildConfig(
             inference_only=self.inference_only,
             lif_smoothing=config.get_setting(self.model, "lif_smoothing"),
             cpu_only=(self.device is not None and "cpu" in self.device.lower())
             or not utils.tf_gpu_installed,
             rng=np.random.RandomState(self.seed),
-            training=(
-                tf.keras.backend.learning_phase() if training is None else training
-            ),
+            training=training,
         )
 
         # pre-build stage
