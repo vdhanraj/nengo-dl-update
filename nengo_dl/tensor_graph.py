@@ -293,7 +293,7 @@ class TensorGraph(tf.keras.layers.Layer):
                     shape=shape,
                     dtype=dtype,
                     trainable=sig_type == "trainable",
-                    name=f"base_params/{sig_type}_{dtype}_"
+                    name=f"base_params_{sig_type}_{dtype}_"
                     f"{'_'.join(str(x) for x in shape)}",
                 )
 
