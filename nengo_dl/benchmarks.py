@@ -185,27 +185,28 @@ def mnist(use_tensor_layer=True):
             synapse = None
 
             x = nengo_dl.Layer(tf.keras.layers.Conv2D(filters=32, kernel_size=3))(
-                net.inp, shape_in=(28, 28, 1)
+                net.inp, shape_in=(28, 28, 1), shape_out=(26, 26, 32),
             )
+
             x = nengo_dl.Layer(nengo_nl)(x, **ensemble_params)
 
             x = nengo_dl.Layer(tf.keras.layers.Conv2D(filters=32, kernel_size=3))(
-                x, shape_in=(26, 26, 32), transform=amplitude
+                x, shape_in=(26, 26, 32), shape_out=(24, 24, 32), transform=amplitude
             )
             x = nengo_dl.Layer(nengo_nl)(x, **ensemble_params)
 
             x = nengo_dl.Layer(
                 tf.keras.layers.AveragePooling2D(pool_size=2, strides=2)
-            )(x, shape_in=(24, 24, 32), synapse=synapse, transform=amplitude)
+            )(x, shape_in=(24, 24, 32), shape_out=(12, 12, 32), synapse=synapse, transform=amplitude)
 
-            x = nengo_dl.Layer(tf.keras.layers.Dense(units=128))(x)
+            x = nengo_dl.Layer(tf.keras.layers.Dense(units=128))(x, shape_out=(128,))
             x = nengo_dl.Layer(nengo_nl)(x, **ensemble_params)
 
             x = nengo_dl.Layer(tf.keras.layers.Dropout(rate=0.4))(
-                x, transform=amplitude
+                x, shape_out=(128,), transform=amplitude
             )
 
-            x = nengo_dl.Layer(tf.keras.layers.Dense(units=10))(x)
+            x = nengo_dl.Layer(tf.keras.layers.Dense(units=10))(x, shape_out=(10,))
         else:
             nl = tf.nn.relu
 

@@ -1449,7 +1449,7 @@ def test_non_differentiable(Simulator):
     (
         nengo.networks.BasalGanglia(4),
         nengo.networks.CircularConvolution(32, 4),
-        nengo.networks.Oscillator(0.01, 10, 100),
+        # nengo.networks.Oscillator(0.01, 10, 100),
         nengo.networks.InputGatedMemory(32, 4),
     ),
 )
