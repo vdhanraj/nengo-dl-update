@@ -987,13 +987,14 @@ class Simulator:  # pylint: disable=too-many-public-methods
         # warn for synapses with n_steps=1
         # note: we don't warn if stateful, since there could be effects across runs
         if not stateful:
-            target_probes = [
-                p
-                for p, e in zip(self.model.probes, self.keras_model.output_names)
-                if self.keras_model.compiled_loss is None
-                or self.keras_model.compiled_loss._losses is None
-                or e in self.keras_model.compiled_loss._losses
-            ]
+            # target_probes = [
+            #     p
+            #     for p, e in zip(self.model.probes, self.keras_model.output_names)
+            #     if self.keras_model.compiled_loss is None
+            #     or self.keras_model.compiled_loss._losses is None
+            #     or e in self.keras_model.compiled_loss._losses
+            # ]
+            target_probes = self.model.probes
 
             synapses = [
                 x.synapse is not None
